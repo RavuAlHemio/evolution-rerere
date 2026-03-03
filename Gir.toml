@@ -3,8 +3,8 @@ girs_directories = [
     "minimal-gir",
     "/usr/share/gir-1.0",
 ]
-library = "EDataServer"
-version = "1.2"
+library = "Everything"
+version = "0.1"
 min_cfg_version = "2.42"
 target_path = "evolution-glue"
 work_mode = "normal"

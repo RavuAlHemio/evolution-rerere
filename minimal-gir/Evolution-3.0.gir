@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<repository version="0.1" xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0">
+  <include name="GObject" version="2.0" />
+  <include name="Gtk" version="3.0" />
+  <namespace name="Evolution" version="3.0" c:identifier-prefixes="E" c:symbol-prefixes="e_">
+    <interface name="Extensible" c:type="EExtensible" glib:type-name="EExtensible" glib:type-struct="ExtensibleInterface" glib:get-type="e_extensible_get_type" c:symbol-prefix="e_extensible_">
+      <method name="load_extensions" c:identifier="e_extensible_load_extensions">
+        <parameters>
+          <instance-parameter name="extensible" transfer-ownership="none">
+            <type name="Extensible" c:type="EExtensible*" />
+          </instance-parameter>
+        </parameters>
+        <return-value>
+          <type name="none" c:type="void" />
+        </return-value>
+      </method>
+      <method name="reload_extensions" c:identifier="e_extensible_reload_extensions">
+        <parameters>
+          <instance-parameter name="extensible" transfer-ownership="none">
+            <type name="Extensible" c:type="EExtensible*" />
+          </instance-parameter>
+        </parameters>
+        <return-value>
+          <type name="none" c:type="void" />
+        </return-value>
+      </method>
+      <method name="list_extensions" c:identifier="e_extensible_list_extensions">
+        <parameters>
+          <instance-parameter name="extensible" transfer-ownership="none">
+            <type name="Extensible" c:type="EExtensible*" />
+          </instance-parameter>
+          <parameter name="extension_type">
+            <type name="GType" c:type="GType" />
+          </parameter>
+        </parameters>
+        <return-value>
+          <type name="GLib.List" c:type="GList*">
+            <type name="Extension" />
+          </type>
+        </return-value>
+      </method>
+    </interface>
+    <class name="MsgComposer" parent="Gtk.Window" c:type="EMsgComposer" glib:type-name="EMsgComposer" glib:type-struct="EMsgComposerClass" glib:get-type="e_msg_composer_get_type" c:symbol-prefix="e_msg_composer_">
+      <field name="parent" readable="0" private="1">
+        <type name="Gtk.Window" c:type="GtkWindow" />
+      </field>
+      <field name="priv" readable="0" private="1">
+        <type name="MsgComposerPrivate" c:type="EMsgComposerPrivate*" />
+      </field>
+      <glib:signal name="presend">
+        <return-value>
+          <type name="gboolean" c:type="gboolean" />
+        </return-value>
+      </glib:signal>
+      <glib:signal name="print">
+        <parameters>
+          <parameter name="print_action">
+            <type name="Gtk.PrintOperationAction" c:type="GtkPrintOperationAction" />
+          </parameter>
+          <instance-parameter name="message" transfer-ownership="none">
+            <type name="Camel.MimeMessage" c:type="CamelMimeMessage*" />
+          </instance-parameter>
+          <instance-parameter name="activity" transfer-ownership="none">
+            <type name="Evolution.Activity" c:type="EActivity*" />
+          </instance-parameter>
+        </parameters>
+        <return-value>
+          <type name="none" c:type="void" />
+        </return-value>
+      </glib:signal>
+      <glib:signal name="save_to_drafts">
+        <parameters>
+          <instance-parameter name="message" transfer-ownership="none">
+            <type name="Camel.MimeMessage" c:type="CamelMimeMessage*" />
+          </instance-parameter>
+          <instance-parameter name="activity" transfer-ownership="none">
+            <type name="Evolution.Activity" c:type="EActivity*" />
+          </instance-parameter>
+        </parameters>
+        <return-value>
+          <type name="none" c:type="void" />
+        </return-value>
+      </glib:signal>
+      <glib:signal name="save_to_outbox">
+        <parameters>
+          <instance-parameter name="message" transfer-ownership="none">
+            <type name="Camel.MimeMessage" c:type="CamelMimeMessage*" />
+          </instance-parameter>
+          <instance-parameter name="activity" transfer-ownership="none">
+            <type name="Evolution.Activity" c:type="EActivity*" />
+          </instance-parameter>
+        </parameters>
+        <return-value>
+          <type name="none" c:type="void" />
+        </return-value>
+      </glib:signal>
+      <glib:signal name="send">
+        <parameters>
+          <instance-parameter name="message" transfer-ownership="none">
+            <type name="Camel.MimeMessage" c:type="CamelMimeMessage*" />
+          </instance-parameter>
+          <instance-parameter name="activity" transfer-ownership="none">
+            <type name="Evolution.Activity" c:type="EActivity*" />
+          </instance-parameter>
+        </parameters>
+        <return-value>
+          <type name="none" c:type="void" />
+        </return-value>
+      </glib:signal>
+      <!-- async constructor beginners are functions, only the finishers are constructors -->
+      <function name="new" c:identifier="e_msg_composer_new" glib:finish-func="new_finish">
+        <parameters>
+          <instance-parameter name="shell" transfer-ownership="none">
+            <type name="Shell" c:type="EShell*" />
+          </instance-parameter>
+          <parameter name="callback">
+            <type name="GLib.AsyncReadyCallback" c:type="GAsyncReadyCallback" />
+          </parameter>
+          <parameter name="user_data" transfer-ownership="none">
+            <type name="gpointer" c:type="gpointer" />
+          </parameter>
+        </parameters>
+        <return-value transfer-ownership="none">
+          <type name="none" c:type="void" />
+        </return-value>
+      </function>
+      <constructor name="new_finish" c:identifier="e_msg_composer_new_finish">
+        <parameters>
+          <instance-parameter name="result" transfer-ownership="none">
+            <type name="GLib.AsyncResult" c:type="GAsyncResult*" />
+          </instance-parameter>
+          <parameter name="error">
+            <type name="GLib.Error" c:type="GError**" />
+          </parameter>
+        </parameters>
+        <return-value transfer-ownership="full">
+          <type name="MsgComposer" c:type="EMsgComposer*" />
+        </return-value>
+      </constructor>
+    </class>
+    <record name="MsgComposerPrivate" c:type="EMsgComposerPrivate" disguised="1" opaque="1" />
+  </namespace>
+</repository>
