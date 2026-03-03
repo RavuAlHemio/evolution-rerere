@@ -1,0 +1,8 @@
+[package]
+name = "evolution-glue"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+evolution-glue-sys = { path = "../evolution-glue-sys" }
+glib = { version = "0.22" }

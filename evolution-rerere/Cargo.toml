@@ -1,0 +1,11 @@
+[package]
+name = "evolution-rerere"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+evolution-glue = { path = "../evolution-glue" }
+libc = { version = "0.2" }

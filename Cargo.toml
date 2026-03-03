@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "evolution-glue",
+    "evolution-glue-sys",
+    "evolution-rerere",
+]
+resolver = "3"

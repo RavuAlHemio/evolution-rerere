@@ -1,0 +1,29 @@
+[options]
+girs_directories = [
+    "minimal-gir",
+    "/usr/share/gir-1.0",
+]
+library = "EDataServer"
+version = "1.2"
+min_cfg_version = "2.42"
+target_path = "evolution-glue"
+work_mode = "normal"
+single_version_file = true
+deprecate_by_min_version = true
+
+generate = [
+]
+
+ignore = [
+]
+
+manual = [
+]
+
+[[object]]
+name = "EDataServer.Extensible"
+status = "generate"
+
+[[object]]
+name = "EDataServer.Extension"
+status = "generate"
