@@ -1,4 +1,5 @@
 mod auto;
+pub mod traits;
 
 pub use crate::auto::*;
 

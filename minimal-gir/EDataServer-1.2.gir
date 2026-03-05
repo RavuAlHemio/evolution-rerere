@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<repository version="0.1" xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0">
+<repository version="1.2" xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0">
   <include name="GObject" version="2.0" />
   <namespace name="EDataServer" version="1.2" c:identifier-prefixes="E" c:symbol-prefixes="e_" shared-library="edataserver-1.2">
     <interface name="Extensible" c:type="EExtensible" glib:type-name="EExtensible" glib:type-struct="ExtensibleInterface" glib:get-type="e_extensible_get_type" c:symbol-prefix="e_extensible_">
@@ -46,7 +46,7 @@
       <field name="priv" readable="0" private="1">
         <type name="ExtensionPrivate" c:type="EExtensionPrivate*" />
       </field>
-      <method name="get_extensible" c:identifier="e_extension_get_extensible" glib:get_proeprty="extensible">
+      <method name="get_extensible" c:identifier="e_extension_get_extensible" glib:get-property="extensible">
         <parameters>
           <instance-parameter name="extension" transfer-ownership="none">
             <type name="Extension" c:type="EExtension*" />

@@ -1,0 +1,38 @@
+---
+libs:
+  - name: EDataServer
+    version: 1.2
+    c_id_prefix: E
+    c_sym_prefix: e_
+    shared_lib: edataserver-1.2
+    interfaces:
+      - name: Extensible
+        c_name: EExtensible
+        methods:
+          - name: load_extensions
+            params:
+              - instance: true
+            return: void
+          - name: reload_extensions
+            params:
+              - instance: true
+            return: void
+          - name: list_extensions
+            params:
+              - instance: true
+              - name: extension_type
+                type: GType
+            return: GLib.List
+            return_type_params:
+              - Extension
+    classes:
+      - name: Extension
+        c_name: EExtension
+        abstr: true
+        parent_and_priv_fields: true
+        properties:
+          - name: extensible
+            rw: rco
+        class_fields:
+          - name: extensible_type
+            type: GType

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<repository version="1.2" xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0">
+  <include name="GObject" version="2.0" />
+  <include name="Gtk" version="3.0" />
+  <include name="EvolutionUtil" version="3.0"/>
+  <namespace name="EvolutionMailComposer" version="3.0" c:identifier-prefixes="E" c:symbol-prefixes="e_" shared-library="evolution-mail-composer">
+    <class name="MsgComposer" parent="Gtk.Window" c:type="EMsgComposer" glib:type-name="EMsgComposer" glib:type-struct="MsgComposerClass" glib:get-type="e_msg_composer_get_type" c:symbol-prefix="e_msg_composer_">
+      <field name="parent" readable="0" private="1">
+        <type name="Gtk.Window" c:type="GtkWindow" />
+      </field>
+      <field name="priv" readable="0" private="1">
+        <type name="MsgComposerPrivate" c:type="EMsgComposerPrivate*" />
+      </field>
+      <glib:signal name="presend">
+        <return-value transfer-ownership="none">
+          <type name="gboolean" c:type="gboolean"/>
+        </return-value>
+      </glib:signal>
+      <glib:signal name="print">
+        <return-value transfer-ownership="none">
+          <type name="none" c:type="none"/>
+        </return-value>
+        <parameters>
+          <instance-parameter name="composer" transfer-ownership="none">
+            <type name="MsgComposer" c:type="EMsgComposer*" />
+          </instance-parameter>
+          <parameter name="print_action">
+            <type name="Gtk.PrintOperationAction" c:type="GtkPrintOperationAction"/>
+          </parameter>
+          <parameter name="message" transfer-ownership="none">
+            <type name="Camel.MimeMessage" c:type="CamelMimeMessage*"/>
+          </parameter>
+          <parameter name="activity" transfer-ownership="none">
+            <type name="EvolutionUtil.Activity" c:type="EActivity*"/>
+          </parameter>
+        </parameters>
+      </glib:signal>
+      <glib:signal name="save-to-drafts">
+        <return-value transfer-ownership="none">
+          <type name="none" c:type="none"/>
+        </return-value>
+        <parameters>
+          <instance-parameter name="composer" transfer-ownership="none">
+            <type name="MsgComposer" c:type="EMsgComposer*" />
+          </instance-parameter>
+          <parameter name="message" transfer-ownership="none">
+            <type name="Camel.MimeMessage" c:type="CamelMimeMessage*"/>
+          </parameter>
+          <parameter name="activity" transfer-ownership="none">
+            <type name="EvolutionUtil.Activity" c:type="EActivity*"/>
+          </parameter>
+        </parameters>
+      </glib:signal>
+      <glib:signal name="save-to-outbox">
+        <return-value transfer-ownership="none">
+          <type name="none" c:type="none"/>
+        </return-value>
+        <parameters>
+          <instance-parameter name="composer" transfer-ownership="none">
+            <type name="MsgComposer" c:type="EMsgComposer*" />
+          </instance-parameter>
+          <parameter name="message" transfer-ownership="none">
+            <type name="Camel.MimeMessage" c:type="CamelMimeMessage*"/>
+          </parameter>
+          <parameter name="activity" transfer-ownership="none">
+            <type name="EvolutionUtil.Activity" c:type="EActivity*"/>
+          </parameter>
+        </parameters>
+      </glib:signal>
+      <glib:signal name="send">
+        <return-value transfer-ownership="none">
+          <type name="none" c:type="none"/>
+        </return-value>
+        <parameters>
+          <instance-parameter name="composer" transfer-ownership="none">
+            <type name="MsgComposer" c:type="EMsgComposer*" />
+          </instance-parameter>
+          <parameter name="message" transfer-ownership="none">
+            <type name="Camel.MimeMessage" c:type="CamelMimeMessage*"/>
+          </parameter>
+          <parameter name="activity" transfer-ownership="none">
+            <type name="EvolutionUtil.Activity" c:type="EActivity*"/>
+          </parameter>
+        </parameters>
+      </glib:signal>
+    </class>
+    <record name="MsgComposerPrivate" c:type="EMsgComposerPrivate" disguised="1" opaque="1" />
+  </namespace>
+</repository>
