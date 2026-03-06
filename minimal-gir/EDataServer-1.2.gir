@@ -1,78 +1,40 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<repository version="1.2" xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0">
-  <include name="GObject" version="2.0" />
+<?xml version="1.0"?>
+<repository xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0" version="1.2">
   <namespace name="EDataServer" version="1.2" c:identifier-prefixes="E" c:symbol-prefixes="e_" shared-library="edataserver-1.2">
-    <interface name="Extensible" c:type="EExtensible" glib:type-name="EExtensible" glib:type-struct="ExtensibleInterface" glib:get-type="e_extensible_get_type" c:symbol-prefix="e_extensible_">
+    <interface name="Extensible" c:type="EExtensible" glib:type-name="EExtensible" glib:type-struct="ExtensibleInterface" c:symbol-prefix="e_extensible_" glib:get-type="e_extensible_get_type">
       <method name="load_extensions" c:identifier="e_extensible_load_extensions">
         <parameters>
           <instance-parameter name="extensible" transfer-ownership="none">
-            <type name="Extensible" c:type="EExtensible*" />
+            <type name="Extensible" c:type="EExtensible*"/>
           </instance-parameter>
         </parameters>
         <return-value>
-          <type name="none" c:type="void" />
+          <type/>
         </return-value>
       </method>
       <method name="reload_extensions" c:identifier="e_extensible_reload_extensions">
         <parameters>
           <instance-parameter name="extensible" transfer-ownership="none">
-            <type name="Extensible" c:type="EExtensible*" />
+            <type name="Extensible" c:type="EExtensible*"/>
           </instance-parameter>
         </parameters>
         <return-value>
-          <type name="none" c:type="void" />
+          <type/>
         </return-value>
       </method>
       <method name="list_extensions" c:identifier="e_extensible_list_extensions">
         <parameters>
           <instance-parameter name="extensible" transfer-ownership="none">
-            <type name="Extensible" c:type="EExtensible*" />
+            <type name="Extensible" c:type="EExtensible*"/>
           </instance-parameter>
           <parameter name="extension_type">
-            <type name="GType" c:type="GType" />
+            <type/>
           </parameter>
         </parameters>
         <return-value>
-          <type name="GLib.List" c:type="GList*">
-            <type name="Extension" />
-          </type>
+          <type/>
         </return-value>
       </method>
     </interface>
-    <class name="Extension" parent="GObject.Object" abstract="1" c:type="EExtension" glib:type-name="EExtension" glib:type-struct="ExtensionClass" glib:get-type="e_extension_get_type" c:symbol-prefix="e_extension_">
-      <field name="parent" readable="0" private="1">
-        <type name="GObject.Object" c:type="GObject" />
-      </field>
-      <field name="priv" readable="0" private="1">
-        <type name="ExtensionPrivate" c:type="EExtensionPrivate*" />
-      </field>
-      <method name="get_extensible" c:identifier="e_extension_get_extensible" glib:get-property="extensible">
-        <parameters>
-          <instance-parameter name="extension" transfer-ownership="none">
-            <type name="Extension" c:type="EExtension*" />
-          </instance-parameter>
-        </parameters>
-        <return-value transfer-ownership="none">
-          <type name="Extensible" c:type="EExtensible*" />
-        </return-value>
-      </method>
-      <property name="extensible" writable="1" construct-only="1" transfer-ownership="none" getter="get_extensible">
-        <type name="Extensible" />
-      </property>
-    </class>
-    <record name="ExtensionPrivate" c:type="EExtensionPrivate" disguised="1" opaque="1" />
-    <record name="ExtensibleInterface" c:type="EExtensibleInterface" glib:is-gtype-struct-for="Extensible">
-      <field name="parent_interface">
-        <type name="GObject.TypeInterface" c:type="GTypeInterface" />
-      </field>
-    </record>
-    <record name="ExtensionClass" c:type="EExtensionClass" glib:is-gtype-struct-for="Extension">
-      <field name="parent_class">
-        <type name="GObject.ObjectClass" c:type="GObjectClass" />
-      </field>
-      <field name="extensible_type">
-        <type name="GType" c:type="GType" />
-      </field>
-    </record>
   </namespace>
 </repository>

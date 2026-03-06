@@ -33,6 +33,7 @@ libs:
         properties:
           - name: extensible
             rw: rco
+            type: Extensible
         class_fields:
           - name: extensible_type
             type: GType
