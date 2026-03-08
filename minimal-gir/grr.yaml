@@ -22,9 +22,10 @@ libs:
               - instance: true
               - name: extension_type
                 type: GType
-            return: GLib.List
-            return_type_params:
-              - Extension
+            return:
+              name: GLib.List
+              params:
+                - Extension
     classes:
       - name: Extension
         c_name: EExtension

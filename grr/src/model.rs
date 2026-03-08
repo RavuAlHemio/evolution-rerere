@@ -26,12 +26,17 @@ pub struct Library {
 pub struct Class {
     pub name: String,
     #[serde(default)] pub c_name: Option<String>,
+    #[serde(default = "Class::default_parent")] pub parent: String,
     #[serde(default)] pub abstr: bool,
-    #[serde(default)] pub parent_and_priv_fields: bool,
+    #[serde(default = "Class::default_parent_and_priv_fields")] pub parent_and_priv_fields: bool,
     #[serde(default)] pub properties: Vec<Property>,
     #[serde(default)] pub fields: Vec<Field>,
     #[serde(default)] pub class_fields: Vec<ClassField>,
     #[serde(default)] pub methods: Vec<Method>,
+}
+impl Class {
+    pub fn default_parent() -> String { "GObject.Object".to_owned() }
+    pub fn default_parent_and_priv_fields() -> bool { true }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -45,7 +50,7 @@ pub struct Interface {
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct OpaqueRecord {
     pub name: String,
-    pub c_name: String,
+    pub c_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -60,6 +65,8 @@ pub struct Property {
     pub name: String,
     pub rw: ReadWrite,
     #[serde(rename = "type")] pub type_info: TypeInfo,
+    #[serde(default)] pub getter_name: Option<String>,
+    #[serde(default)] pub setter_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -86,6 +93,8 @@ pub struct Method {
     #[serde(default)] pub c_name: Option<String>,
     #[serde(default)] pub params: Vec<Parameter>,
     #[serde(rename = "return")] pub return_type: TypeInfo,
+    #[serde(default)] pub getter_for_property: Option<String>,
+    #[serde(default)] pub setter_for_property: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -124,7 +133,38 @@ pub enum ReadWrite {
 pub struct TypeInfo {
     pub name: String,
     pub c_type: Option<String>,
+    pub is_const: bool,
+    pub is_contained: bool,
     pub params: Vec<TypeInfo>,
+}
+impl TypeInfo {
+    pub fn make_void() -> Self {
+        Self {
+            name: "none".to_owned(),
+            c_type: Some("void".to_owned()),
+            is_const: false,
+            is_contained: false,
+            params: Vec::with_capacity(0),
+        }
+    }
+
+    fn bool_from_map_key(map: &serde_json::Map<String, serde_json::Value>, key: &str) -> Result<bool, String> {
+        let val_opt = map.get(key);
+        let val_bool = if let Some(val) = val_opt {
+            if let Some(val_str) = val.as_str() {
+                match val_str {
+                    "true" => true,
+                    "false" => false,
+                    _ => return Err(format!("TypeInfo object {:?} entry neither \"true\" nor \"false\"", key)),
+                }
+            } else {
+                return Err(format!("TypeInfo object {:?} entry not a string", key));
+            }
+        } else {
+            false
+        };
+        Ok(val_bool)
+    }
 }
 impl<'de> Deserialize<'de> for TypeInfo {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
@@ -133,6 +173,8 @@ impl<'de> Deserialize<'de> for TypeInfo {
             Ok(Self {
                 name: jv.to_owned(),
                 c_type: None,
+                is_const: false,
+                is_contained: false,
                 params: Vec::with_capacity(0),
             })
         } else if let Some(jv) = json_value.as_object() {
@@ -153,6 +195,10 @@ impl<'de> Deserialize<'de> for TypeInfo {
             } else {
                 None
             };
+            let is_const = Self::bool_from_map_key(jv, "const")
+                .map_err(|e| D::Error::custom(e))?;
+            let is_contained = Self::bool_from_map_key(jv, "contained")
+                .map_err(|e| D::Error::custom(e))?;
             let empty_array = serde_json::Value::Array(Vec::with_capacity(0));
             let params_val = jv.get("params")
                 .unwrap_or_else(|| &empty_array);
@@ -161,6 +207,8 @@ impl<'de> Deserialize<'de> for TypeInfo {
             Ok(Self {
                 name: name.to_owned(),
                 c_type,
+                is_const,
+                is_contained,
                 params,
             })
         } else {
@@ -170,11 +218,15 @@ impl<'de> Deserialize<'de> for TypeInfo {
 }
 impl Serialize for TypeInfo {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        if self.params.len() == 0 && self.c_type.is_none() {
+        if self.params.len() == 0 && self.c_type.is_none() && self.is_const {
             self.name.serialize(serializer)
         } else {
+            let is_const = if self.is_const { "true" } else { "false" };
+            let is_contained = if self.is_contained { "true" } else { "false" };
             let value = serde_json::json!({
                 "name": self.name,
+                "const": is_const,
+                "contained": is_contained,
                 "c_type": self.c_type,
                 "params": self.params,
             });

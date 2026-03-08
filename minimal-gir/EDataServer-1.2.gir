@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <repository xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0" version="1.2">
   <namespace name="EDataServer" version="1.2" c:identifier-prefixes="E" c:symbol-prefixes="e_" shared-library="edataserver-1.2">
-    <interface name="Extensible" c:type="EExtensible" glib:type-name="EExtensible" glib:type-struct="ExtensibleInterface" c:symbol-prefix="e_extensible_" glib:get-type="e_extensible_get_type">
+    <interface name="Extensible" c:type="EExtensible" glib:type-name="EExtensible" c:symbol-prefix="e_extensible_" glib:type-struct="ExtensibleInterface" glib:get-type="e_extensible_get_type">
       <method name="load_extensions" c:identifier="e_extensible_load_extensions">
         <parameters>
           <instance-parameter name="extensible" transfer-ownership="none">
@@ -9,7 +9,7 @@
           </instance-parameter>
         </parameters>
         <return-value>
-          <type/>
+          <type name="none" c:type="void"/>
         </return-value>
       </method>
       <method name="reload_extensions" c:identifier="e_extensible_reload_extensions">
@@ -19,7 +19,7 @@
           </instance-parameter>
         </parameters>
         <return-value>
-          <type/>
+          <type name="none" c:type="void"/>
         </return-value>
       </method>
       <method name="list_extensions" c:identifier="e_extensible_list_extensions">
@@ -28,13 +28,36 @@
             <type name="Extensible" c:type="EExtensible*"/>
           </instance-parameter>
           <parameter name="extension_type">
-            <type/>
+            <type name="GType" c:type="GType"/>
           </parameter>
         </parameters>
         <return-value>
-          <type/>
+          <type name="GLib.List" c:type="GList*">
+            <type name="Extension"/>
+          </type>
         </return-value>
       </method>
     </interface>
+    <class name="Extension" c:type="EExtension" glib:type-name="EExtension" c:symbol-prefix="e_extension_" glib:type-struct="ExtensionClass" glib:get-type="e_extension_get_type">
+      <field name="parent" private="1" writable="1" construct="1">
+        <type name="GObject.Object" c:type="GObject"/>
+      </field>
+      <field name="priv" private="1" writable="1" construct="1">
+        <type name="ExtensionPrivate" c:type="EExtensionPrivate*"/>
+      </field>
+      <property name="extensible" readable="1" writable="1" construct-only="1">
+        <type name="Extensible" c:type="EExtensible*"/>
+      </property>
+      <method name="get_extensible" c:identifier="e_extension_get_extensible">
+        <parameters>
+          <instance-parameter name="extension" transfer-ownership="none">
+            <type name="Extension" c:type="EExtension*"/>
+          </instance-parameter>
+        </parameters>
+        <return-value>
+          <type name="Extensible" c:type="EExtensible*"/>
+        </return-value>
+      </method>
+    </class>
   </namespace>
 </repository>

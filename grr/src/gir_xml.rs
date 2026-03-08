@@ -1,8 +1,7 @@
-use std::fmt::Write;
-
 use xot::{NamespaceId, Node, Xot};
 
-use crate::model::{Library, Method, Parameter, TypeInfo};
+use crate::model::{ClassField, Field, Library, Method, Parameter, Property, ReadWrite, TypeInfo};
+use crate::typing::pascal_to_snake_case;
 
 
 trait XotExt {
@@ -30,23 +29,6 @@ impl XotExt for Xot {
 }
 
 
-fn pascal_to_snake_case(pascal: &str) -> String {
-    let mut ret = String::with_capacity(pascal.len() * 2);
-    for c in pascal.chars() {
-        if c.is_uppercase() {
-            let c_lower = c.to_lowercase();
-            if ret.len() > 0 {
-                ret.push('_');
-            }
-            write!(ret, "{}", c_lower).unwrap();
-        } else {
-            ret.push(c);
-        }
-    }
-    ret
-}
-
-
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct NamespacePack {
     core_id: NamespaceId,
@@ -56,28 +38,36 @@ struct NamespacePack {
 
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-struct MethodsState<'a> {
+struct InterfaceOrClassState<'a> {
     ns: NamespacePack,
-    symbol_prefix: &'a str,
 
-    /// Name of the class or interface containing this method.
-    parent_name: &'a str,
+    /// Name of the class or interface.
+    ioc_name: &'a str,
 
-    /// Name of the class or interface containing this method in the C representation.
+    /// Name of the class or interface in the C representation.
     ///
     /// "C" refers to the programming language.
-    c_parent_name: &'a str,
+    ioc_c_name: &'a str,
+
+    /// The C symbol (e.g. function or global variable name) prefix of the class or interface.
+    ///
+    /// "C" refers to the programming language.
+    ioc_c_sym_prefix: &'a str,
+
+    /// The C identifier (e.g. struct name) prefix of the library.
+    ///
+    /// "C" refers to the programming language.
+    lib_c_id_prefix: &'a str,
 }
 
 
 fn append_type(xot: &mut Xot, parent_elem: Node, ns: NamespacePack, type_info: &TypeInfo, topmost_type: bool) {
     let type_elem = xot.new_child_element(parent_elem, "type", ns.core_id);
-    let (type_name, c_type) = match &type_info.name {
-        _ => todo!(),
-    };
-    xot.set_attribute_value(type_elem, "name", type_name);
-    if topmost_type {
-        xot.set_ns_attribute_value(type_elem, "type", ns.c_id, c_type);
+    xot.set_attribute_value(type_elem, "name", &type_info.name);
+    if let Some(c_type) = type_info.c_type.as_ref() {
+        if topmost_type {
+            xot.set_ns_attribute_value(type_elem, "type", ns.c_id, c_type);
+        }
     }
     for type_param in &type_info.params {
         append_type(xot, type_elem, ns, type_param, false);
@@ -85,44 +75,173 @@ fn append_type(xot: &mut Xot, parent_elem: Node, ns: NamespacePack, type_info: &
 }
 
 
-fn append_methods(xot: &mut Xot, parent_elem: Node, state: MethodsState, methods: &[Method]) {
-    for method in methods {
-        let method_elem = xot.new_child_element(parent_elem, "method", state.ns.core_id);
-        xot.set_attribute_value(method_elem, "name", &method.name);
+fn append_field(xot: &mut Xot, parent_elem: Node, state: InterfaceOrClassState, field: &Field) {
+    let field_elem = xot.new_child_element(parent_elem, "field", state.ns.core_id);
+    xot.set_attribute_value(field_elem, "name", &field.name);
 
-        let c_ident = format!("{}{}", state.symbol_prefix, method.name);
-        xot.set_ns_attribute_value(method_elem, "identifier", state.ns.c_id, &c_ident);
-
-        let params_elem = xot.new_child_element(method_elem, "parameters", state.ns.core_id);
-
-        for param in &method.params {
-            match param {
-                Parameter::Instance => {
-                    let name = pascal_to_snake_case(&state.parent_name);
-                    let type_name = state.parent_name;
-                    let c_type_name = state.c_parent_name;
-
-                    let ipar_elem = xot.new_child_element(params_elem, "instance-parameter", state.ns.core_id);
-                    xot.set_attribute_value(ipar_elem, "name", &name);
-                    xot.set_attribute_value(ipar_elem, "transfer-ownership", "none");
-                    let type_elem = xot.new_child_element(ipar_elem, "type", state.ns.core_id);
-                    xot.set_attribute_value(type_elem, "name", type_name);
-                    xot.set_ns_attribute_value(type_elem, "type", state.ns.c_id, &format!("{}*", c_type_name));
-                },
-                Parameter::Regular(regular_parameter) => {
-                    let par_elem = xot.new_child_element(params_elem, "parameter", state.ns.core_id);
-                    xot.set_attribute_value(par_elem, "name", &regular_parameter.name);
-                    // TODO: transfer-ownership
-                    append_type(xot, par_elem, state.ns, &regular_parameter.type_info, true);
-                },
-            }
-        }
-
-        let ret_val_elem = xot.new_child_element(method_elem, "return-value", state.ns.core_id);
-        append_type(xot, ret_val_elem, state.ns, &method.return_type, true);
+    if field.private {
+        xot.set_attribute_value(field_elem, "private", "1");
     }
+
+    match field.rw {
+        ReadWrite::Neither => {
+            xot.set_attribute_value(field_elem, "readable", "0");
+            xot.set_attribute_value(field_elem, "writable", "0");
+        },
+        ReadWrite::ReadOnly => {
+            xot.set_attribute_value(field_elem, "readable", "1");
+            xot.set_attribute_value(field_elem, "writable", "0");
+        },
+        ReadWrite::ReadConstruct => {
+            xot.set_attribute_value(field_elem, "readable", "1");
+            xot.set_attribute_value(field_elem, "writable", "1");
+            xot.set_attribute_value(field_elem, "construct-only", "1");
+        },
+        ReadWrite::ReadWrite => {
+            xot.set_attribute_value(field_elem, "readable", "1");
+            xot.set_attribute_value(field_elem, "writable", "1");
+        },
+        ReadWrite::ReadWriteConstruct => {
+            xot.set_attribute_value(field_elem, "readable", "1");
+            xot.set_attribute_value(field_elem, "writable", "1");
+            xot.set_attribute_value(field_elem, "construct", "1");
+        },
+        ReadWrite::WriteOnly => {
+            xot.set_attribute_value(field_elem, "readable", "0");
+            xot.set_attribute_value(field_elem, "writable", "1");
+        },
+        ReadWrite::WriteConstruct => {
+            xot.set_attribute_value(field_elem, "writable", "1");
+            xot.set_attribute_value(field_elem, "construct", "1");
+        },
+    }
+    append_type(xot, field_elem, state.ns, &field.type_info, true);
 }
 
+
+fn append_property(xot: &mut Xot, parent_elem: Node, state: InterfaceOrClassState, property: &Property) {
+    let prop_elem = xot.new_child_element(parent_elem, "property", state.ns.core_id);
+    xot.set_attribute_value(prop_elem, "name", &property.name);
+
+    match property.rw {
+        ReadWrite::Neither => {
+            xot.set_attribute_value(prop_elem, "readable", "0");
+            xot.set_attribute_value(prop_elem, "writable", "0");
+        },
+        ReadWrite::ReadOnly => {
+            xot.set_attribute_value(prop_elem, "readable", "1");
+            xot.set_attribute_value(prop_elem, "writable", "0");
+        },
+        ReadWrite::ReadConstruct => {
+            xot.set_attribute_value(prop_elem, "readable", "1");
+            xot.set_attribute_value(prop_elem, "writable", "1");
+            xot.set_attribute_value(prop_elem, "construct-only", "1");
+        },
+        ReadWrite::ReadWrite => {
+            xot.set_attribute_value(prop_elem, "readable", "1");
+            xot.set_attribute_value(prop_elem, "writable", "1");
+        },
+        ReadWrite::ReadWriteConstruct => {
+            xot.set_attribute_value(prop_elem, "readable", "1");
+            xot.set_attribute_value(prop_elem, "writable", "1");
+            xot.set_attribute_value(prop_elem, "construct", "1");
+        },
+        ReadWrite::WriteOnly => {
+            xot.set_attribute_value(prop_elem, "readable", "0");
+            xot.set_attribute_value(prop_elem, "writable", "1");
+        },
+        ReadWrite::WriteConstruct => {
+            xot.set_attribute_value(prop_elem, "writable", "1");
+            xot.set_attribute_value(prop_elem, "construct", "1");
+        },
+    }
+
+    if let Some(getter_name) = property.getter_name.as_ref() {
+        xot.set_attribute_value(prop_elem, "getter", getter_name);
+    }
+    if let Some(setter_name) = property.setter_name.as_ref() {
+        xot.set_attribute_value(prop_elem, "setter", setter_name);
+    }
+
+    append_type(xot, prop_elem, state.ns, &property.type_info, true);
+}
+
+
+fn append_method(xot: &mut Xot, parent_elem: Node, state: InterfaceOrClassState, method: &Method) {
+    let method_elem = xot.new_child_element(parent_elem, "method", state.ns.core_id);
+    xot.set_attribute_value(method_elem, "name", &method.name);
+
+    let c_ident = format!("{}{}", state.ioc_c_sym_prefix, method.name);
+    xot.set_ns_attribute_value(method_elem, "identifier", state.ns.c_id, &c_ident);
+
+    let params_elem = xot.new_child_element(method_elem, "parameters", state.ns.core_id);
+
+    for param in &method.params {
+        match param {
+            Parameter::Instance => {
+                let name = pascal_to_snake_case(&state.ioc_name);
+                let type_name = state.ioc_name;
+                let c_type_name = state.ioc_c_name;
+
+                let ipar_elem = xot.new_child_element(params_elem, "instance-parameter", state.ns.core_id);
+                xot.set_attribute_value(ipar_elem, "name", &name);
+                xot.set_attribute_value(ipar_elem, "transfer-ownership", "none");
+                let type_elem = xot.new_child_element(ipar_elem, "type", state.ns.core_id);
+                xot.set_attribute_value(type_elem, "name", type_name);
+                xot.set_ns_attribute_value(type_elem, "type", state.ns.c_id, &format!("{}*", c_type_name));
+            },
+            Parameter::Regular(regular_parameter) => {
+                let par_elem = xot.new_child_element(params_elem, "parameter", state.ns.core_id);
+                xot.set_attribute_value(par_elem, "name", &regular_parameter.name);
+                // TODO: transfer-ownership
+                append_type(xot, par_elem, state.ns, &regular_parameter.type_info, true);
+            },
+        }
+    }
+
+    let ret_val_elem = xot.new_child_element(method_elem, "return-value", state.ns.core_id);
+    append_type(xot, ret_val_elem, state.ns, &method.return_type, true);
+}
+
+
+fn append_interface_or_class(
+    xot: &mut Xot,
+    state: InterfaceOrClassState<'_>,
+    ns_elem: Node,
+    elem_name: &str,
+    type_struct_suffix: &str,
+    fields: &[Field],
+    class_fields: &[ClassField],
+    properties: &[Property],
+    methods: &[Method],
+) {
+    let ioc_elem = xot.new_child_element(ns_elem, elem_name, state.ns.core_id);
+    xot.set_attribute_value(ioc_elem, "name", state.ioc_name);
+
+    xot.set_ns_attribute_value(ioc_elem, "type", state.ns.c_id, state.ioc_c_name);
+    xot.set_ns_attribute_value(ioc_elem, "type-name", state.ns.glib_id, state.ioc_c_name);
+    xot.set_ns_attribute_value(ioc_elem, "symbol-prefix", state.ns.c_id, state.ioc_c_sym_prefix);
+
+    // Somethingable -> SomethingableInterface/SomethingableClass
+    let type_struct = format!("{}{}", state.ioc_name, type_struct_suffix);
+    xot.set_ns_attribute_value(ioc_elem, "type-struct", state.ns.glib_id, &type_struct);
+
+    // prefix_, Somethingable -> prefix_somethingable_get_type
+    let get_type_func = format!("{}get_type", state.ioc_c_sym_prefix);
+    xot.set_ns_attribute_value(ioc_elem, "get-type", state.ns.glib_id, &get_type_func);
+
+    for field in fields {
+        append_field(xot, ioc_elem, state, field);
+    }
+
+    for property in properties {
+        append_property(xot, ioc_elem, state, property);
+    }
+
+    for method in methods {
+        append_method(xot, ioc_elem, state, method);
+    }
+}
 
 pub(crate) fn lib_to_xml(library: &Library) -> (Xot, Node) {
     let mut xot = Xot::new();
@@ -160,40 +279,49 @@ pub(crate) fn lib_to_xml(library: &Library) -> (Xot, Node) {
         xot.set_attribute_value(ns_elem, "shared-library", sl);
     }
 
-    //let known_records = BTreeSet::new();
-
     for interface in &library.interfaces {
-        let iface_elem = xot.new_child_element(ns_elem, "interface", ns.core_id);
-        xot.set_attribute_value(iface_elem, "name", &interface.name);
-
-        // Somethingable -> PrefixSomethingable
-        let c_name_storage;
-        let c_name = if let Some(cn) = &interface.c_name {
-            cn.as_str()
-        } else {
-            c_name_storage = format!("{}{}", library.c_id_prefix, library.name);
-            c_name_storage.as_str()
-        };
-        xot.set_ns_attribute_value(iface_elem, "type", ns.c_id, c_name);
-        xot.set_ns_attribute_value(iface_elem, "type-name", ns.glib_id, c_name);
-
-        // Somethingable -> SomethingableInterface
-        let type_struct = format!("{}Interface", interface.name);
-        xot.set_ns_attribute_value(iface_elem, "type-struct", ns.glib_id, &type_struct);
-
-        // prefix_, Somethingable -> prefix_somethingable_, prefix_somethingable_get_type
         let symbol_prefix = format!("{}{}_", library.c_sym_prefix, pascal_to_snake_case(&interface.name));
-        xot.set_ns_attribute_value(iface_elem, "symbol-prefix", ns.c_id, &symbol_prefix);
-        let get_type_func = format!("{}get_type", symbol_prefix);
-        xot.set_ns_attribute_value(iface_elem, "get-type", ns.glib_id, &get_type_func);
-
-        let methods_state = MethodsState {
+        let state = InterfaceOrClassState {
             ns,
-            symbol_prefix: &symbol_prefix,
-            parent_name: &interface.name,
-            c_parent_name: c_name,
+            ioc_name: &interface.name,
+            ioc_c_name: interface.c_name.as_ref().expect("interface has no C name"),
+            ioc_c_sym_prefix: &symbol_prefix,
+            lib_c_id_prefix: &library.c_id_prefix,
         };
-        append_methods(&mut xot, iface_elem, methods_state, &interface.methods);
+        append_interface_or_class(
+            &mut xot,
+            state,
+            ns_elem,
+            "interface",
+            "Interface",
+            &[],
+            &[],
+            &interface.properties,
+            &interface.methods,
+        );
+    }
+
+    for cls in &library.classes {
+        let symbol_prefix = format!("{}{}_", library.c_sym_prefix, pascal_to_snake_case(&cls.name));
+        let state = InterfaceOrClassState {
+            ns,
+            ioc_name: &cls.name,
+            ioc_c_name: cls.c_name.as_ref().expect("class has no C name"),
+            ioc_c_sym_prefix: &symbol_prefix,
+            lib_c_id_prefix: &library.c_id_prefix,
+        };
+
+        append_interface_or_class(
+            &mut xot,
+            state,
+            ns_elem,
+            "class",
+            "Class",
+            &cls.fields,
+            &cls.class_fields,
+            &cls.properties,
+            &cls.methods,
+        );
     }
 
     (xot, repo_doc)

@@ -1,5 +1,6 @@
 mod gir_xml;
 mod model;
+mod typing;
 
 
 use std::path::PathBuf;
@@ -10,6 +11,7 @@ use xot::output::xml::{Declaration, Parameters};
 
 use crate::gir_xml::lib_to_xml;
 use crate::model::Document;
+use crate::typing::TypeDatabase;
 
 
 #[derive(Parser)]
@@ -25,8 +27,19 @@ fn main() {
     // read info
     let doc_string = std::fs::read_to_string(&opts.grr_file)
         .expect("failed to load grr YAML file");
-    let doc: Document = strict_yaml_rust::serde::from_str(&doc_string)
+    let mut doc: Document = strict_yaml_rust::serde::from_str(&doc_string)
         .expect("failed to parse grr YAML file");
+
+    crate::typing::realize_parent_and_priv_fields(&mut doc);
+    crate::typing::realize_property_getters_and_setters(&mut doc);
+
+    // enrich type information
+    let type_database = TypeDatabase::try_from_mut_document(&mut doc)
+        .expect("failed to construct type database");
+    type_database.enrich_document(&mut doc)
+        .expect("failed to enrich document from type database");
+
+    println!("{:#?}", doc);
 
     for library in &doc.libraries {
         let (lib_xot, lib_doc) = lib_to_xml(library);
