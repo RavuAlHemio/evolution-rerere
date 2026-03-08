@@ -1,6 +1,6 @@
 use xot::{NamespaceId, Node, Xot};
 
-use crate::model::{ClassField, Field, Library, Method, Parameter, Property, ReadWrite, TypeInfo};
+use crate::model::{Field, Library, Method, Parameter, Property, ReadWrite, TypeInfo};
 use crate::typing::pascal_to_snake_case;
 
 
@@ -211,7 +211,6 @@ fn append_interface_or_class(
     elem_name: &str,
     type_struct_suffix: &str,
     fields: &[Field],
-    class_fields: &[ClassField],
     properties: &[Property],
     methods: &[Method],
 ) {
@@ -295,7 +294,6 @@ pub(crate) fn lib_to_xml(library: &Library) -> (Xot, Node) {
             "interface",
             "Interface",
             &[],
-            &[],
             &interface.properties,
             &interface.methods,
         );
@@ -318,10 +316,33 @@ pub(crate) fn lib_to_xml(library: &Library) -> (Xot, Node) {
             "class",
             "Class",
             &cls.fields,
-            &cls.class_fields,
             &cls.properties,
             &cls.methods,
         );
+    }
+
+    for opaque_record in &library.opaque_records {
+        let rec_elem = xot.new_child_element(ns_elem, "record", ns.core_id);
+        xot.set_attribute_value(rec_elem, "name", &opaque_record.name);
+        if let Some(c_name) = opaque_record.c_name.as_ref() {
+            xot.set_ns_attribute_value(rec_elem, "type", ns.c_id, c_name);
+        }
+        xot.set_attribute_value(rec_elem, "disguised", "1");
+        xot.set_attribute_value(rec_elem, "opaque", "1");
+    }
+
+    for record in &library.records {
+        let rec_elem = xot.new_child_element(ns_elem, "record", ns.core_id);
+        xot.set_attribute_value(rec_elem, "name", &record.name);
+        xot.set_ns_attribute_value(rec_elem, "type", ns.c_id, &record.c_name);
+        if let Some(gtype_for) = record.gtype_for.as_ref() {
+            xot.set_ns_attribute_value(rec_elem, "is-gtype-struct-for", ns.glib_id, gtype_for);
+        }
+        for field in &record.fields {
+            let field_elem = xot.new_child_element(rec_elem, "field", ns.core_id);
+            xot.set_attribute_value(field_elem, "name", &field.name);
+            append_type(&mut xot, field_elem, ns, &field.type_info, true);
+        }
     }
 
     (xot, repo_doc)

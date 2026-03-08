@@ -4,7 +4,10 @@ use std::collections::btree_map::Entry;
 use std::fmt;
 
 use crate::model::ReadWrite::{self, WriteConstruct};
-use crate::model::{Document, Field, Method, OpaqueRecord, Parameter, Property, RegularParameter, TypeInfo};
+use crate::model::{
+    Class, Document, Field, Interface, Method, OpaqueRecord, Parameter, Property, Record,
+    RecordField, RegularParameter, TypeInfo,
+};
 
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -57,6 +60,7 @@ pub struct TypeDatabase {
     c_to_library_and_type: BTreeMap<String, (String, String)>,
 }
 impl TypeDatabase {
+    #[allow(unused)]
     pub fn new() -> Self {
         Self {
             library_to_type_to_c: BTreeMap::new(),
@@ -105,10 +109,12 @@ impl TypeDatabase {
         Ok(())
     }
 
+    #[allow(unused)]
     pub fn library_to_type_to_c(&self) -> &BTreeMap<String, BTreeMap<String, String>> {
         &self.library_to_type_to_c
     }
 
+    #[allow(unused)]
     pub fn c_to_library_and_type(&self) -> &BTreeMap<String, (String, String)> {
         &self.c_to_library_and_type
     }
@@ -403,6 +409,78 @@ pub fn realize_property_getters_and_setters(doc: &mut Document) {
                     &mut cls.methods,
                 );
             }
+        }
+    }
+}
+
+fn realize_class_struct(
+    records: &mut Vec<Record>,
+    cls: &Class,
+) {
+    let mut fields = Vec::new();
+    fields.push(RecordField {
+        name: "parent_class".to_owned(),
+        type_info: TypeInfo {
+            name: "GObject.ObjectClass".to_owned(),
+            c_type: Some("GObjectClass".to_owned()),
+            is_const: false,
+            is_contained: true,
+            params: Vec::with_capacity(0),
+        },
+    });
+    for class_field in &cls.class_fields {
+        fields.push(RecordField {
+            name: class_field.name.clone(),
+            type_info: class_field.type_info.clone(),
+        });
+    }
+
+    records.push(Record {
+        name: format!("{}Class", cls.name),
+        c_name: format!("{}Class", cls.c_name.as_ref().unwrap()),
+        gtype_for: Some(cls.name.clone()),
+        fields,
+    });
+}
+
+fn realize_interface_struct(
+    records: &mut Vec<Record>,
+    iface: &Interface,
+) {
+    let mut fields = Vec::new();
+    fields.push(RecordField {
+        name: "parent_interface".to_owned(),
+        type_info: TypeInfo {
+            name: "GObject.TypeInterface".to_owned(),
+            c_type: Some("GTypeInterface".to_owned()),
+            is_const: false,
+            is_contained: true,
+            params: Vec::with_capacity(0),
+        },
+    });
+
+    records.push(Record {
+        name: format!("{}Interface", iface.name),
+        c_name: format!("{}Interface", iface.c_name.as_ref().unwrap()),
+        gtype_for: Some(iface.name.clone()),
+        fields,
+    });
+}
+
+pub fn realize_class_and_iface_structs(doc: &mut Document) {
+    for library in &mut doc.libraries {
+        for iface in &library.interfaces {
+            realize_interface_struct(
+                &mut library.records,
+                iface,
+            );
+        }
+
+        for cls in &mut library.classes {
+            realize_class_struct(
+                &mut library.records,
+                cls,
+            );
         }
     }
 }

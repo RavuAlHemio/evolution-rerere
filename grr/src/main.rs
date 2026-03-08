@@ -32,6 +32,7 @@ fn main() {
 
     crate::typing::realize_parent_and_priv_fields(&mut doc);
     crate::typing::realize_property_getters_and_setters(&mut doc);
+    crate::typing::realize_class_and_iface_structs(&mut doc);
 
     // enrich type information
     let type_database = TypeDatabase::try_from_mut_document(&mut doc)

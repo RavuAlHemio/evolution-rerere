@@ -57,7 +57,14 @@ pub struct OpaqueRecord {
 pub struct Record {
     pub name: String,
     pub c_name: String,
-    #[serde(default)] pub fields: Vec<Field>,
+    pub gtype_for: Option<String>,
+    #[serde(default)] pub fields: Vec<RecordField>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct RecordField {
+    pub name: String,
+    #[serde(rename = "type")] pub type_info: TypeInfo,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]

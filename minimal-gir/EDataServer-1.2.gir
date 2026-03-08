@@ -59,5 +59,19 @@
         </return-value>
       </method>
     </class>
+    <record name="ExtensionPrivate" c:type="EExtensionPrivate" disguised="1" opaque="1"/>
+    <record name="ExtensibleInterface" c:type="EExtensibleInterface" glib:is-gtype-struct-for="Extensible">
+      <field name="parent_interface">
+        <type name="GObject.TypeInterface" c:type="GTypeInterface"/>
+      </field>
+    </record>
+    <record name="ExtensionClass" c:type="EExtensionClass" glib:is-gtype-struct-for="Extension">
+      <field name="parent_class">
+        <type name="GObject.ObjectClass" c:type="GObjectClass"/>
+      </field>
+      <field name="extensible_type">
+        <type name="GType" c:type="GType"/>
+      </field>
+    </record>
   </namespace>
 </repository>
