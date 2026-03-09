@@ -3,9 +3,8 @@ use std::collections::BTreeMap;
 use std::collections::btree_map::Entry;
 use std::fmt;
 
-use crate::model::ReadWrite::{self, WriteConstruct};
 use crate::model::{
-    Class, Document, Field, Interface, Method, OpaqueRecord, Parameter, Property, Record,
+    Class, Document, Field, Interface, Method, OpaqueRecord, Parameter, Property, ReadWrite, Record,
     RecordField, RegularParameter, TypeInfo,
 };
 
@@ -301,7 +300,7 @@ pub fn realize_parent_and_priv_fields(doc: &mut Document) {
             let parent_field = Field {
                 name: "parent".to_owned(),
                 private: true,
-                rw: WriteConstruct,
+                rw: ReadWrite::WriteConstruct,
                 type_info: TypeInfo {
                     name: cls.parent.clone(),
                     c_type: None,
@@ -313,7 +312,7 @@ pub fn realize_parent_and_priv_fields(doc: &mut Document) {
             let priv_field = Field {
                 name: "priv".to_owned(),
                 private: true,
-                rw: WriteConstruct,
+                rw: ReadWrite::WriteConstruct,
                 type_info: TypeInfo {
                     name: format!("{}Private", cls.name),
                     c_type: None,
@@ -350,7 +349,7 @@ fn realize_property_getter_setter(parent_c_prefix: &str, property: &mut Property
         let name = format!("get_{}", property.name);
         let c_name = format!("{}{}", parent_c_prefix, name);
         let getter_method = Method {
-            name,
+            name: name.clone(),
             c_name: Some(c_name),
             params: vec![Parameter::Instance],
             return_type: property.type_info.clone(),
@@ -358,13 +357,14 @@ fn realize_property_getter_setter(parent_c_prefix: &str, property: &mut Property
             setter_for_property: None,
         };
         methods.push(getter_method);
+        property.getter_name = Some(name);
     }
 
     if has_setter {
         let name = format!("set_{}", property.name);
         let c_name = format!("{}{}", parent_c_prefix, name);
         let setter_method = Method {
-            name,
+            name: name.clone(),
             c_name: Some(c_name),
             params: vec![
                 Parameter::Instance,
@@ -378,6 +378,7 @@ fn realize_property_getter_setter(parent_c_prefix: &str, property: &mut Property
             setter_for_property: None,
         };
         methods.push(setter_method);
+        property.setter_name = Some(name);
     }
 }
 
@@ -420,6 +421,7 @@ fn realize_class_struct(
     let mut fields = Vec::new();
     fields.push(RecordField {
         name: "parent_class".to_owned(),
+        private: true,
         type_info: TypeInfo {
             name: "GObject.ObjectClass".to_owned(),
             c_type: Some("GObjectClass".to_owned()),
@@ -431,6 +433,7 @@ fn realize_class_struct(
     for class_field in &cls.class_fields {
         fields.push(RecordField {
             name: class_field.name.clone(),
+            private: true,
             type_info: class_field.type_info.clone(),
         });
     }
@@ -450,6 +453,7 @@ fn realize_interface_struct(
     let mut fields = Vec::new();
     fields.push(RecordField {
         name: "parent_interface".to_owned(),
+        private: true,
         type_info: TypeInfo {
             name: "GObject.TypeInterface".to_owned(),
             c_type: Some("GTypeInterface".to_owned()),

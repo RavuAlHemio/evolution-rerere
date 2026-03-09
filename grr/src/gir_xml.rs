@@ -1,6 +1,6 @@
 use xot::{NamespaceId, Node, Xot};
 
-use crate::model::{Field, Library, Method, Parameter, Property, ReadWrite, TypeInfo};
+use crate::model::{Document, Field, Library, Method, Parameter, Property, ReadWrite, TypeInfo};
 use crate::typing::pascal_to_snake_case;
 
 
@@ -34,6 +34,15 @@ struct NamespacePack {
     core_id: NamespaceId,
     c_id: NamespaceId,
     glib_id: NamespaceId,
+}
+impl NamespacePack {
+    pub fn new_with_xot(xot: &mut Xot) -> Self {
+        Self {
+            core_id: xot.add_namespace("http://www.gtk.org/introspection/core/1.0"),
+            c_id: xot.add_namespace("http://www.gtk.org/introspection/c/1.0"),
+            glib_id: xot.add_namespace("http://www.gtk.org/introspection/glib/1.0"),
+        }
+    }
 }
 
 
@@ -242,14 +251,9 @@ fn append_interface_or_class(
     }
 }
 
-pub(crate) fn lib_to_xml(library: &Library) -> (Xot, Node) {
+fn new_doc(doc_elem_name: &str) -> (Xot, NamespacePack, Node, Node) {
     let mut xot = Xot::new();
-
-    let ns: NamespacePack = NamespacePack {
-        core_id: xot.add_namespace("http://www.gtk.org/introspection/core/1.0"),
-        c_id: xot.add_namespace("http://www.gtk.org/introspection/c/1.0"),
-        glib_id: xot.add_namespace("http://www.gtk.org/introspection/glib/1.0"),
-    };
+    let ns: NamespacePack = NamespacePack::new_with_xot(&mut xot);
 
     let core_ns_prefix = xot.empty_prefix();
     let c_ns_prefix = xot.add_prefix("c");
@@ -259,15 +263,26 @@ pub(crate) fn lib_to_xml(library: &Library) -> (Xot, Node) {
     let c_ns_node = xot.new_namespace_node(c_ns_prefix, ns.c_id);
     let glib_ns_node = xot.new_namespace_node(glib_ns_prefix, ns.glib_id);
 
-    let repo_name = xot.add_name_ns("repository", ns.core_id);
-    let repo_elem = xot.new_element(repo_name);
-    let repo_doc = xot.new_document_with_element(repo_elem)
+    let doc_elem_name_id = xot.add_name_ns(doc_elem_name, ns.core_id);
+    let doc_elem = xot.new_element(doc_elem_name_id);
+    let doc_node = xot.new_document_with_element(doc_elem)
         .expect("failed to create document element");
-    xot.append_namespace_node(repo_elem, core_ns_node).unwrap();
-    xot.append_namespace_node(repo_elem, c_ns_node).unwrap();
-    xot.append_namespace_node(repo_elem, glib_ns_node).unwrap();
+    xot.append_namespace_node(doc_elem, core_ns_node).unwrap();
+    xot.append_namespace_node(doc_elem, c_ns_node).unwrap();
+    xot.append_namespace_node(doc_elem, glib_ns_node).unwrap();
 
+    (xot, ns, doc_node, doc_elem)
+}
+
+pub(crate) fn lib_to_xml(library: &Library) -> (Xot, Node) {
+    let (mut xot, ns, repo_doc, repo_elem) = new_doc("repository");
     xot.set_attribute_value(repo_elem, "version", "1.2");
+
+    for dep in &library.dependencies {
+        let inc_elem = xot.new_child_element(repo_elem, "include", ns.core_id);
+        xot.set_attribute_value(inc_elem, "name", &dep.name);
+        xot.set_attribute_value(inc_elem, "version", &dep.version);
+    }
 
     let ns_elem = xot.new_child_element(repo_elem, "namespace", ns.core_id);
     xot.set_attribute_value(ns_elem, "name", &library.name);
@@ -343,6 +358,19 @@ pub(crate) fn lib_to_xml(library: &Library) -> (Xot, Node) {
             xot.set_attribute_value(field_elem, "name", &field.name);
             append_type(&mut xot, field_elem, ns, &field.type_info, true);
         }
+    }
+
+    (xot, repo_doc)
+}
+
+pub(crate) fn everything_lib_to_xml(doc: &Document) -> (Xot, Node) {
+    let (mut xot, ns, repo_doc, repo_elem) = new_doc("repository");
+    xot.set_attribute_value(repo_elem, "version", "1.2");
+
+    for lib in &doc.libraries {
+        let inc_elem = xot.new_child_element(repo_elem, "include", ns.core_id);
+        xot.set_attribute_value(inc_elem, "name", &lib.name);
+        xot.set_attribute_value(inc_elem, "version", &lib.version);
     }
 
     (xot, repo_doc)

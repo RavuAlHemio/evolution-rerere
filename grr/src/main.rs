@@ -1,16 +1,17 @@
 mod gir_xml;
 mod model;
+mod stringing;
 mod typing;
 
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use xot::output::Indentation;
 use xot::output::xml::{Declaration, Parameters};
 
-use crate::gir_xml::lib_to_xml;
-use crate::model::Document;
+use crate::gir_xml::{everything_lib_to_xml, lib_to_xml};
+use crate::model::{Dependency, Document};
 use crate::typing::TypeDatabase;
 
 
@@ -20,6 +21,23 @@ struct Opts {
     pub output_dir: PathBuf,
 }
 
+fn get_favorite_xml_params() -> Parameters {
+    Parameters {
+        indentation: Some(Indentation::default()),
+        cdata_section_elements: Vec::default(),
+        declaration: Some(Declaration::default()),
+        doctype: None,
+        unescaped_gt: false,
+    }
+}
+
+fn write_xml_string(output_dir: &Path, library: &Dependency, gir_xml_str: &str) {
+    let mut library_path = output_dir.to_owned();
+    let library_fn = format!("{}-{}.gir", library.name, library.version);
+    library_path.push(&library_fn);
+    std::fs::write(&library_path, gir_xml_str)
+        .expect("failed to write GIR file");
+}
 
 fn main() {
     let opts = Opts::parse();
@@ -44,20 +62,17 @@ fn main() {
 
     for library in &doc.libraries {
         let (lib_xot, lib_doc) = lib_to_xml(library);
-        let xml_params = Parameters {
-            indentation: Some(Indentation::default()),
-            cdata_section_elements: Vec::default(),
-            declaration: Some(Declaration::default()),
-            doctype: None,
-            unescaped_gt: false,
-        };
+        let xml_params = get_favorite_xml_params();
         let lib_xml = lib_xot.serialize_xml_string(xml_params, lib_doc)
             .expect("failed to serialize GIR document");
+        write_xml_string(&opts.output_dir, &library.to_dependency(), &lib_xml);
+    }
 
-        let mut library_path = opts.output_dir.clone();
-        let library_fn = format!("{}-{}.gir", library.name, library.version);
-        library_path.push(&library_fn);
-        std::fs::write(&library_path, lib_xml)
-            .expect("failed to write GIR file");
+    if let Some(everything_lib) = doc.everything_lib.as_ref() {
+        let (el_xot, el_doc) = everything_lib_to_xml(&doc);
+        let xml_params = get_favorite_xml_params();
+        let el_xml = el_xot.serialize_xml_string(xml_params, el_doc)
+            .expect("failed to serialize \"everything\" GIR document");
+        write_xml_string(&opts.output_dir, everything_lib, &el_xml);
     }
 }

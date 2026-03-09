@@ -1,12 +1,16 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde::de::Error;
+use serde::de::Error as _;
+use serde::ser::Error as _;
+
+use crate::stringing::StringExt;
 
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Document {
     #[serde(rename = "libs")] pub libraries: Vec<Library>,
+    #[serde(default)] pub everything_lib: Option<Dependency>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -20,6 +24,15 @@ pub struct Library {
     #[serde(default)] pub interfaces: Vec<Interface>,
     #[serde(default)] pub opaque_records: Vec<OpaqueRecord>,
     #[serde(default)] pub records: Vec<Record>,
+    #[serde(default, rename = "deps")] pub dependencies: Vec<Dependency>,
+}
+impl Library {
+    pub fn to_dependency(&self) -> Dependency {
+        Dependency {
+            name: self.name.clone(),
+            version: self.version.clone(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -64,7 +77,11 @@ pub struct Record {
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct RecordField {
     pub name: String,
+    #[serde(default = "RecordField::default_private")] pub private: bool,
     #[serde(rename = "type")] pub type_info: TypeInfo,
+}
+impl RecordField {
+    pub fn default_private() -> bool { true }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -296,4 +313,32 @@ impl Serialize for Parameter {
 pub struct RegularParameter {
     pub name: String,
     #[serde(rename = "type")] pub type_info: TypeInfo,
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct Dependency {
+    pub name: String,
+    pub version: String,
+}
+impl<'de> Deserialize<'de> for Dependency {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let dep_string: String = Deserialize::deserialize(deserializer)?;
+        let (name, version) = dep_string.split_last(' ')
+            .ok_or_else(|| D::Error::custom("Dependency must be a string with library name and version separated by a space (U+0020)"))?;
+
+        Ok(Self {
+            name: name.to_owned(),
+            version: version.to_owned(),
+        })
+    }
+}
+impl Serialize for Dependency {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if self.version.contains(' ') {
+            Err(S::Error::custom("cannot serialize Dependency if the version contains spaces"))
+        } else {
+            let string = format!("{} {}", self.name, self.version);
+            string.serialize(serializer)
+        }
+    }
 }
