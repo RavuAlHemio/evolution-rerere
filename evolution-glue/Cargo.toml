@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-evolution-glue-sys = { path = "../evolution-glue-sys" }
-glib = { version = "0.22" }
+
+[build-dependencies]
+bindgen = { version = "0.72" }
+pkg-config = { version = "0.3" }

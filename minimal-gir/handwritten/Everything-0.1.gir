@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<repository version="1.2">
-  <include name="EDataServer" version="1.2"/>
-  <include name="EvolutionMailComposer" version="3.0"/>
-</repository>

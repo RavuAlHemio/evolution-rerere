@@ -9,3 +9,4 @@ crate-type = ["cdylib"]
 [dependencies]
 evolution-glue = { path = "../evolution-glue" }
 libc = { version = "0.2" }
+regex = { version = "1.12" }
