@@ -4,10 +4,10 @@ use std::str::FromStr;
 use std::sync::{LazyLock, RwLock};
 
 use evolution_glue::{
-    EComposerHeaderTable, e_composer_header_table_get_subject, e_composer_header_table_set_subject,
-    EExtension, EExtensionClass, e_extension_get_extensible, e_extension_get_type, EMsgComposer,
-    e_msg_composer_get_header_table, e_msg_composer_get_type, e_signal_connect_notify, gint,
-    GObject, GObjectClass, GParamSpec, gpointer, GType, GTypeClass,
+    EComposerHeaderTable, e_composer_header_table_get_subject, e_composer_header_table_get_type,
+    e_composer_header_table_set_subject, EExtension, EExtensionClass, e_extension_get_extensible,
+    e_extension_get_type, EMsgComposer, e_msg_composer_get_header_table, e_msg_composer_get_type,
+    e_signal_connect_notify, gint, GObject, GObjectClass, GParamSpec, gpointer, GType, GTypeClass,
     g_type_class_adjust_private_offset, g_type_class_peek_parent, GTypeInfo, GTypeInstance,
     GTypeModule, g_type_module_register_type, G_TYPE_OBJECT,
 };
@@ -46,17 +46,11 @@ static RE_RE_RE_COMPOSER_EXTENSION_PRIVATE_OFFSET: LazyLock<RwLock<gint>> = Lazy
 static RE_RE_RE_COMPOSER_EXTENSION_PARENT_CLASS: LazyLock<RwLock<GTypeClassPtr>> = LazyLock::new(|| RwLock::new(GTypeClassPtr::null()));
 static SUBJ_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(concat!(
     "(?P<prefix>",
-        // English, Unix tradition
-        "Re",
-        "Fwd",
-
-        // English, Outlook
-        "RE",
-        "FW",
-
-        // German, Outlook
-        "WG",
-        "AW",
+        "Re|Fwd", // English, Unix tradition
+        "|",
+        "RE|FW", // English, Outlook
+        "|",
+        "WG|AW", // German, Outlook
     ")",
     "(?:",
         "\\[",
@@ -153,11 +147,11 @@ impl ReReReComposerExtension {
 
     fn class_init(cls: *mut ReReReComposerExtensionClass) {
         let object_class: *mut GObjectClass = unsafe { class_cast(cls, G_TYPE_OBJECT) };
-        unsafe { *object_class }.constructed = Some(Self::constructed);
+        unsafe { &mut *object_class }.constructed = Some(Self::constructed);
 
         let e_extension_type = unsafe { e_extension_get_type() };
         let extension_class: *mut EExtensionClass = unsafe { class_cast(cls, e_extension_type) };
-        unsafe { *extension_class }.extensible_type = unsafe { e_msg_composer_get_type() };
+        unsafe { &mut *extension_class }.extensible_type = unsafe { e_msg_composer_get_type() };
     }
 
     extern "C" fn get_instance_private(myself: *mut ReReReComposerExtension) -> *mut ReReReComposerExtensionPrivate {
@@ -215,7 +209,7 @@ impl ReReReComposerExtension {
     }
 
     extern "C" fn subject_changed(instance: gpointer, _param: *mut GParamSpec, user_data: gpointer) {
-        let header_table: *mut EComposerHeaderTable = unsafe { type_cast(instance, e_msg_composer_get_type()) };
+        let header_table: *mut EComposerHeaderTable = unsafe { type_cast(instance, e_composer_header_table_get_type()) };
         let extension: *mut ReReReComposerExtension = unsafe { type_cast(user_data, Self::type_id()) };
 
         // guard against multiple calls for the same subject
@@ -272,7 +266,11 @@ impl ReReReComposerExtension {
         }
 
         // assemble the full new subject
-        let full_new_subject = format!("{}{}", new_prefix.as_deref().unwrap_or(""), new_subject);
+        let full_new_subject = if let Some(np) = new_prefix.as_ref() {
+            format!("{} {}", np, new_subject)
+        } else {
+            new_subject
+        };
         let full_new_subject_c = CString::from_str(&full_new_subject).unwrap();
 
         unsafe {
@@ -286,6 +284,7 @@ struct ReReReComposerExtensionClass {
     parent: EExtensionClass,
 }
 
+#[unsafe(no_mangle)]
 pub extern "C" fn rerere_composer_extension_get_type() -> GType {
     ReReReComposerExtension::type_id()
 }
