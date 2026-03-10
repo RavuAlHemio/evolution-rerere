@@ -35,7 +35,15 @@ fn main() {
         .clang_args(&clang_args)
         .header("wrapper.h")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
-        .blocklist_item("IPPORT_RESERVED")
+        .allowlist_item("GType.*")
+        .allowlist_item("g_type_.*")
+        .allowlist_item("EMsgComposer")
+        .allowlist_item("e_msg_composer_.*")
+        .allowlist_item("EComposerHeaderTable")
+        .allowlist_item("e_composer_header_table_.*")
+        .allowlist_item("EExtensi(on|ble).*")
+        .allowlist_item("e_extensi(on|ble).*")
+        .allowlist_item("e_signal_.*")
         .generate()
         .expect("unable to generate bindings");
 
